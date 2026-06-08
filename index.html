@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>삿포로 3박4일 · 2026.07.07–10 · 멜론/소프트 버전</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-gesture-handling@1.2.2/dist/leaflet-gesture-handling.min.css"/>
+<style>
+  :root{
+    --navy:#2c3a4f; --navy2:#3d4f68; --ink:#1f2937; --mut:#6b7280;
+    --line:#e5e7eb; --bg:#f4f5f7; --card:#fff; --accent:#e8590c;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.5;
+    max-width:680px; margin:0 auto;
+    padding-bottom:max(48px,env(safe-area-inset-bottom));
+  }
+  header{
+    background:linear-gradient(135deg,var(--navy),var(--navy2));
+    color:#fff;
+    padding:max(18px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) 14px max(18px,env(safe-area-inset-left));
+  }
+  header h1{margin:0; font-size:21px; letter-spacing:-.3px}
+  header .sub{margin-top:3px; font-size:12.5px; color:#c7d2e0}
+  .chips{margin-top:12px; display:flex; flex-direction:column; gap:6px; font-size:12.5px}
+  .chips div{color:#dde5ef}
+  .chips b{color:#fff; font-weight:600}
+  .chips .k{display:inline-block; min-width:54px; color:#9fb1c9}
+  nav.days{
+    position:sticky; top:0; z-index:600; background:#fff;
+    display:flex; gap:6px; padding:9px 10px; border-bottom:1px solid var(--line);
+    overflow-x:auto; -webkit-overflow-scrolling:touch;
+  }
+  nav.days button{
+    flex:1 0 auto; min-width:78px; border:1px solid var(--line); background:#fff;
+    color:var(--mut); border-radius:11px; padding:7px 8px; font-size:12.5px; font-weight:600;
+    font-family:inherit; cursor:pointer; line-height:1.25; text-align:center;
+  }
+  nav.days button small{display:block; font-size:10.5px; font-weight:500; opacity:.8}
+  nav.days button.on{background:var(--navy); color:#fff; border-color:var(--navy)}
+  #map{width:100%; height:46vh; height:46dvh; min-height:300px; z-index:1; background:#dfe3e8}
+  .leaflet-touch .leaflet-bar a{width:38px; height:38px; line-height:38px}
+  .pin-in{
+    width:26px;height:26px;border-radius:50% 50% 50% 2px; transform:rotate(45deg);
+    border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.4);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .pin-in span{transform:rotate(-45deg); color:#fff; font-weight:700; font-size:13px}
+  .leaflet-popup-content{font-family:inherit; margin:10px 12px; font-size:13px}
+  .leaflet-popup-content b{font-size:13.5px}
+  .leaflet-popup-content a{color:var(--accent); font-weight:600; text-decoration:none}
+  .legend{display:flex; flex-wrap:wrap; gap:8px 12px; padding:9px 14px; background:#fff;
+    border-bottom:1px solid var(--line); font-size:11px; color:var(--mut)}
+  .legend i{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+  .dayhead{padding:14px 16px 4px}
+  .dayhead h2{margin:0; font-size:16px; color:var(--navy)}
+  .dayhead p{margin:3px 0 0; font-size:12px; color:var(--mut)}
+  main{padding:6px 12px 4px}
+  .row{
+    display:flex; gap:11px; background:var(--card); border:1px solid var(--line);
+    border-left-width:4px; border-radius:12px; padding:11px 12px; margin:9px 0;
+  }
+  .row .num{
+    flex:0 0 26px; width:26px;height:26px;border-radius:50%; color:#fff;
+    display:flex;align-items:center;justify-content:center; font-weight:700; font-size:13px; margin-top:1px;
+  }
+  .row .emo{flex:0 0 26px; width:26px; text-align:center; font-size:17px; margin-top:1px}
+  .row .body{flex:1; min-width:0}
+  .row .time{font-size:12px; color:var(--accent); font-weight:700}
+  .row .name{font-size:14.5px; font-weight:600; margin:1px 0 2px}
+  .row .tr{font-size:11.5px; color:#41546b; background:#eef2f7; border-radius:7px;
+    padding:3px 8px; display:inline-block; margin:1px 0 4px; line-height:1.45}
+  .row .memo{font-size:12.5px; color:var(--mut); word-break:keep-all}
+  .row .btns{display:flex; gap:10px; margin-top:8px}
+  .row .btns a, .row .btns button{
+    font-family:inherit; font-size:12px; font-weight:600; border-radius:8px;
+    padding:9px 13px; border:1px solid var(--line); background:#fafafa; color:var(--ink);
+    text-decoration:none; cursor:pointer; min-height:40px;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .row .btns a.nav{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .row.flat{border-left-color:#cbd5e1; background:#fafbfc; padding:9px 12px}
+  .row.flat .name{font-weight:600; font-size:13px; color:#475569}
+  .refs{padding:10px 12px 0}
+  .refs h3{font-size:13px; color:var(--mut); margin:16px 4px 6px; letter-spacing:-.2px}
+  details{background:#fff; border:1px solid var(--line); border-radius:12px; margin:8px 0; overflow:hidden}
+  summary{padding:12px 14px; font-weight:600; font-size:14px; cursor:pointer; list-style:none;
+    display:flex; justify-content:space-between; align-items:center}
+  summary::-webkit-details-marker{display:none}
+  summary .arr{color:var(--mut); font-size:12px; transition:.2s}
+  details[open] summary .arr{transform:rotate(180deg)}
+  .refbody{padding:2px 14px 14px; font-size:12.5px; border-top:1px solid var(--line)}
+  table{width:100%; border-collapse:collapse; font-size:12px; margin-top:6px}
+  th,td{text-align:left; padding:6px 7px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{color:var(--navy); font-weight:600; background:#f7f8fa}
+  td.jp{font-size:13px}
+  .chk{margin:5px 0; padding-left:2px}
+  .chk b{color:var(--navy)}
+  footer{text-align:center; font-size:11px; color:#9aa3af; padding:18px 16px 6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🗼 삿포로 3박 4일</h1>
+  <div class="sub">2026.07.07(화) – 07.10(금) · 남자 2명 친구 여행 · 로컬 느낌 우선 · 🍈 멜론/소프트 추가 버전</div>
+  <div class="chips">
+    <div><span class="k">✈ 항공</span> 7/7 LJ303 인천<b>T2</b> 15:25→신치토세 18:10 · 7/10 RF355 신치토세 16:50→청주 19:45</div>
+    <div><span class="k">🏨 숙소</span> <b>Wyndham Garden Sapporo Odori</b></div>
+    <div><span class="k">🧳 수하물</span> 위탁 15kg / 기내 10kg · 기내식 없음</div>
+  </div>
+</header>
+
+<nav class="days" id="days"></nav>
+<div id="map"></div>
+<div class="legend">
+  <span><i style="background:#1971c2"></i>관광·체험</span>
+  <span><i style="background:#e8590c"></i>식사</span>
+  <span><i style="background:#e64980"></i>디저트</span>
+  <span><i style="background:#2f9e44"></i>쇼핑</span>
+  <span><i style="background:#3b3f8f"></i>야경</span>
+  <span><i style="background:#7c3aed"></i>숙소</span>
+  <span><i style="background:#64748b"></i>이동</span>
+</div>
+
+<div class="dayhead" id="dayhead"></div>
+<main id="list"></main>
+
+<section class="refs">
+  <h3>📎 참고 자료 (탭하면 펼쳐짐)</h3>
+
+<details open>
+    <summary>🎫 항공·숙소 예약 정보 <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <div class="chk" style="margin-bottom:4px"><b>항공편</b> · 기내식 없음 · 위탁 15kg·기내 10kg</div>
+      <table>
+        <tr><th>구분</th><th>구간 · 시간</th><th>편명 · 예약</th></tr>
+        <tr><td>출국<br>7/7(화)</td><td>인천(T2)→신치토세<br>15:25~18:10 (2h50m)</td><td>진에어 LJ303<br>예약 <b>••••••</b></td></tr>
+        <tr><td>귀국<br>7/10(금)</td><td>신치토세→<b>청주</b><br>16:50~19:45 (2h55m)</td><td>에어로케이 RF355<br>예약 <b>••••••</b></td></tr>
+      </table>
+      <div class="chk" style="margin-top:8px"><b>숙소</b> · Wyndham Garden Sapporo Odori · 미나미2조니시7(南2条西7)-7-1</div>
+      <div class="chk">· 체크인 15:00 / <b>체크아웃 10:00</b> · 예약번호 <b>••••••••••</b></div>
+      <div class="chk" style="color:#9aa3af">※ 결제: 출국 ₩***,*** · 귀국 ₩***,*** · 숙소 ₩***,*** &nbsp;|&nbsp; ⚠️귀국은 인천 아닌 <b>청주공항</b> — 픽업·집 가는 교통 미리 확인</div>
+    </div>
+  </details>
+
+<details>
+    <summary>🎒 준비물 체크리스트 <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <div class="chk"><b>서류</b> · 여권, 항공권, 호텔 예약내역, Visit Japan Web, 여행자보험</div>
+      <div class="chk"><b>돈/결제</b> · 현금 2~3만 엔, 해외결제 카드, IC카드, 동전지갑</div>
+      <div class="chk"><b>통신</b> · 유심사 eSIM(출발 전 미리 설치 · 위 📶 가이드 참고), 보조배터리</div>
+      <div class="chk"><b>충전</b> · 충전기, C타입 케이블, 멀티포트, 일본 A타입 어댑터(100V)</div>
+      <div class="chk"><b>의류</b> · 반팔, 얇은 긴팔/셔츠, 편한 바지, 운동화 (7월 낮 덥고 밤은 선선)</div>
+      <div class="chk"><b>날씨</b> · 접이식 우산, 모자, 선크림</div>
+      <div class="chk"><b>식당 대응</b> · 파파고/구글번역, 일본어 문장 메모, 후보 식당 주소</div>
+      <div class="chk"><b>기타</b> · 작은 크로스백, 여분 비닐봉투, 휴지/물티슈</div>
+    </div>
+  </details>
+
+<details>
+    <summary>📶 eSIM 설치·개통 (유심사 · 갤럭시) <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <div class="chk"><b>한 줄 순서</b> · ① 한국서 미리 설치(켜진 X) → ② 일본 도착 후 회선 켬 + 데이터 로밍 ON → ③ 안 되면 APN 수동</div>
+
+      <div class="chk" style="margin-top:8px"><b>① 출발 전 (집/공항, Wi-Fi 필수)</b></div>
+      <div class="chk">· 유심사에서 문자·이메일로 받은 <b>QR코드</b> 준비 (다른 폰·태블릿·종이에 띄워두면 스캔 편함)</div>
+      <div class="chk">· 갤럭시: <b>설정 → 연결 → SIM 관리자 → eSIM 추가 → QR 코드 스캔 → 추가</b></div>
+      <div class="chk">· ⚠️ 추가만 하고 <b>eSIM 회선은 "끔(OFF)"</b>으로 둠 — 한국에서 켜면 사용기간이 미리 시작될 수 있음</div>
+      <div class="chk">· 한국 SIM은 그대로 두기 (번호 유지 = 전화·문자·각종 인증)</div>
+
+      <div class="chk" style="margin-top:8px"><b>② 일본(신치토세) 도착 후</b></div>
+      <div class="chk">· 비행기모드 해제 → 설정 → 연결 → <b>SIM 관리자</b>에서 eSIM 회선 <b>켬(ON)</b></div>
+      <div class="chk">· <b>모바일 데이터(데이터 회선)를 eSIM으로</b> 지정</div>
+      <div class="chk">· 설정 → 연결 → 모바일 네트워크 → <b>데이터 로밍 ON</b> (eSIM 회선 기준)</div>
+      <div class="chk">· 한국 SIM은 <b>데이터 로밍 OFF</b>로 둬서 요금 폭탄 방지 (전화·문자 수신용으로만)</div>
+
+      <div class="chk" style="margin-top:8px"><b>③ 인터넷 안 될 때 (APN 수동)</b></div>
+      <div class="chk">· 설정 → 연결 → 모바일 네트워크 → (eSIM 선택) → APN → 추가</div>
+      <div class="chk">· 이름은 아무거나 / <b>APN: vmobile.jp</b> (소프트뱅크 계열 기준) → 저장 후 선택</div>
+      <div class="chk" style="color:#9aa3af">※ APN 값은 구매한 상품 안내문이 우선 (도코모/IIJ 계열은 다를 수 있음)</div>
+
+      <div class="chk" style="margin-top:8px"><b>자주 막히는 포인트</b></div>
+      <div class="chk">· 안 잡히면 <b>재부팅</b> 한 번 · 그래도 안 되면 "네트워크 수동 선택"에서 SoftBank/docomo 선택</div>
+      <div class="chk">· 카톡 전화·영상은 데이터로 OK · 음성통화 필요하면 한국 SIM(로밍요금) 또는 카톡</div>
+      <div class="chk">· 데이터 용량·사용기간·테더링(핫스팟) 가능 여부는 상품마다 다름 → 구매 메일 안내 확인</div>
+    </div>
+  </details>
+
+<details>
+    <summary>📱 유용한 앱 <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <table>
+        <tr><th>용도</th><th>앱</th><th>메모</th></tr>
+        <tr><td>길찾기</td><td>구글 지도</td><td>삿포로 지역 오프라인 지도 미리 저장 · 도보/지하철/전차 다 됨</td></tr>
+        <tr><td>대중교통</td><td>NAVITIME / 노리카에안나이</td><td>전철·버스 환승·요금·막차 정확 (구글맵으로 대체 가능)</td></tr>
+        <tr><td>번역</td><td>파파고 · 구글 번역</td><td>카메라로 메뉴·간판 실시간 번역</td></tr>
+        <tr><td>입국</td><td>Visit Japan Web</td><td>입국심사·세관 QR (출발 전 등록)</td></tr>
+        <tr><td>결제</td><td>트래블월렛/트래블로그</td><td>JPY 충전·ATM 인출·터치결제</td></tr>
+        <tr><td>맛집</td><td>타베로그(食べログ)·구글맵</td><td>영업시간·정기휴일·웨이팅 (방문 당일 체크)</td></tr>
+        <tr><td>택시</td><td>GO · DiDi</td><td>필요할 때만 (이번 일정은 거의 도보·전철)</td></tr>
+        <tr><td>연락</td><td>카카오톡</td><td>데이터로 전화·메시지 (음성통화 대체)</td></tr>
+      </table>
+      <div class="chk" style="color:#9aa3af; margin-top:6px">※ 환율은 구글에 "엔 환율" 검색이면 충분 · 날씨는 구글 날씨/tenki.jp로 소나기 체크</div>
+    </div>
+  </details>
+
+<details>
+    <summary>🌤️ 7월 날씨·옷차림 + 예약 체크 <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <div class="chk"><b>7월 삿포로 날씨</b> · 낮 최고 ~25°C / 밤 ~17°C · 본토보다 시원, 습도 낮아 쾌적 · 본격 장마 없지만 가끔 소나기 · 일교차 있음</div>
+      <div class="chk"><b>옷차림</b> · 반팔 + 얇은 긴팔/셔츠 · 편한 바지 · 운동화(많이 걸음) · 가벼운 겉옷(밤·냉방용) · 접이식 우산 · 선크림/모자(자외선 강함)</div>
+      <div class="chk" style="margin-top:8px"><b>미리 해두면 좋은 것</b></div>
+      <div class="chk">· 스시 시키하나마루(四季花まる) — 가능하면 사전 예약(평일 예약 가능 시간), 줄 길면 백업</div>
+      <div class="chk">· 삿포로 야오큐(札幌やおきゅう)(유바리 멜론 소프트) — 영업일 화·목·토만, 임시휴무 잦음 → 7/9 출발 전 전화(011-737-5580)로 영업 확인</div>
+      <div class="chk">· 다이이치 스스키노점(ダイイチ すすきの店) 컷 멜론 — 입고 따라 변동 → 7/8 현장 확인, 없으면 7/9 소프트로</div>
+      <div class="chk">· 모이와야마 — 예약 불필요, 단 당일 날씨 확인 후 실행</div>
+      <div class="chk">· Visit Japan Web — 입국·세관 QR 미리 등록(빠른 입국)</div>
+      <div class="chk">· 유심사 eSIM — 출발 전 QR로 미리 설치(회선은 켜진 X) · 진에어 좌석/수하물(위탁 15kg) 확인</div>
+    </div>
+  </details>
+
+<details>
+    <summary>💰 예산 &amp; 입장료 (1인 기준) <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <table>
+        <tr><th>항목</th><th>1인 대략</th><th>비고</th></tr>
+        <tr><td>식비</td><td>¥25,000~30,000</td><td>4일 · 로컬 위주</td></tr>
+        <tr><td>교통</td><td>¥4,000~4,500</td><td>JR 공항왕복(¥2,460)+지하철/전차</td></tr>
+        <tr><td>입장료</td><td>¥3,100</td><td>모이와야마+TV타워 (AOAO 제외)</td></tr>
+        <tr><td>멜론·디저트</td><td>¥2,000~4,000</td><td>컷 멜론+유바리 소프트+메론빵 등</td></tr>
+        <tr><td>쇼핑/선물</td><td>¥5,000~15,000</td><td>취향껏</td></tr>
+        <tr><th>합계(현지)</th><th>약 ¥40,000~56,000</th><th>≈ 38만~53만원</th></tr>
+      </table>
+      <div class="chk" style="margin-top:8px"><b>입장료 · 운영시간</b></div>
+      <div class="chk">· 모이와야마 로프웨이+모리스카 왕복 — ¥2,100 · ~22:00 (막 상행 21:30)</div>
+      <div class="chk">· 삿포로 TV타워 전망대 — ¥1,000 · 09:00~22:00</div>
+      <div class="chk">· 유바리 멜론 소프트(札幌やおきゅう) — ¥500 · 화·목·토 10:00~17:00</div>
+      <div class="chk">· 오도리공원·홋카이도신궁·마루야마(円山)공원 — 무료</div>
+      <div class="chk" style="color:#9aa3af">※ 항공·숙소 제외 · 환율 100엔≈950원 가정 · 요금/입장료 변동 가능 · AOAO는 이번 버전에서 제외</div>
+    </div>
+  </details>
+
+<details>
+    <summary>✈️ 인천공항 출발 가이드 (7/7 · LJ303) <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <div class="chk"><b>핵심</b> · 공항은 일찍 가면 지루하지만 늦게 가면 여행 시작부터 망함 · 일본행은 짐검사·출국심사·면세 이동까지 시간 걸리니 <b>여유 있게</b></div>
+      <div class="chk"><b>터미널</b> · 진에어 LJ303 = 인천 <b>제2여객터미널(T2)</b> · 국제선 카운터 3층 <b>E21~40</b> · 탑승수속 출발 3시간 전~50분 전</div>
+
+      <div class="chk" style="margin-top:8px"><b>⏱ 추천 타임라인 (15:25 출발 기준)</b></div>
+      <table>
+        <tr><th>시간</th><th>행동</th></tr>
+        <tr><td>12:10~12:30</td><td>T2 도착</td></tr>
+        <tr><td>12:30~13:00</td><td>체크인 / 수하물 위탁</td></tr>
+        <tr><td>13:00~13:30</td><td>보안검색 · 출국심사</td></tr>
+        <tr><td>13:30~14:30</td><td>식사 / 면세점 (수속 후 휴식)</td></tr>
+        <tr><td>14:40 전후</td><td>탑승구 근처 이동</td></tr>
+        <tr><td>14:55~15:05</td><td>탑승 시작 예상</td></tr>
+      </table>
+
+      <div class="chk" style="margin-top:8px"><b>출발 전날 할 것</b></div>
+      <div class="chk">· <b style="color:var(--accent)">✅ 모바일 체크인</b> 먼저(좌석 확보) → 공항선 수하물만 위탁</div>
+      <div class="chk">· 전날 밤 항공사 앱·인천공항 출발편 조회로 터미널·카운터·시간 변경 재확인</div>
+      <div class="chk">· <b style="color:var(--accent)">✅ 인천공항 스마트패스 등록</b> — 안면정보 1회(5년 유효), 탑승권은 매 출국마다 등록 · 성수기 체감 차이 ↑</div>
+
+      <div class="chk" style="margin-top:8px"><b>짐 싸는 팁</b></div>
+      <div class="chk">· 기내 액체류 = 개별 100ml 이하 + 전부 합쳐 1L 이하 투명 지퍼백 1개 (스킨·로션·선크림·치약·헤어젤·향수)</div>
+      <div class="chk">· 100ml 초과 선크림·화장품은 위탁수하물로</div>
+      <div class="chk">· 보조배터리·전자담배·노트북·태블릿은 <b>기내(휴대)</b> · 위탁 X</div>
+      <div class="chk">· 여권·항공권·호텔 예약서·Visit Japan Web QR·카드/현금은 폰과 별도로 캡처</div>
+
+      <div class="chk" style="margin-top:8px"><b>도착 후 동선</b></div>
+      <div class="chk">· T2 3층 출발층 → 진에어 카운터/키오스크 → 수하물 위탁 → 보안검색 → 출국심사 → 면세구역 → 탑승구</div>
+      <div class="chk">· ⚠️ "밥 먹고 천천히" 금지 — <b>수속·짐 위탁부터</b> 끝내고 식사/라운지</div>
+
+      <div class="chk" style="margin-top:8px"><b>식사·휴식</b></div>
+      <div class="chk">· 수속·짐 위탁 끝내면 1~1.5h 여유 → 면세구역 식당/카페에서 밥+음료+충전 (LJ303 기내식 없음)</div>
+
+      <div class="chk" style="margin-top:8px"><b>시간 쓰는 요령</b></div>
+      <div class="chk">· 생수는 보안검색 <b>이후</b> 구매 (검색 전엔 액체류라 반입 X)</div>
+      <div class="chk">· 면세점은 오래 볼수록 지출 ↑ · 탑승구가 멀 수 있어 <b>탑승 30~40분 전</b> 게이트 근처 대기</div>
+      <div class="chk" style="color:#9aa3af">※ 운항 정보는 공항 운영 상황에 따라 변동 가능 — 정확한 건 항공사 확인</div>
+    </div>
+  </details>
+
+<details>
+    <summary>🛂 입국(Visit Japan Web) · 🇰🇷 귀국 <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <div class="chk"><b>① 출발 전 — Visit Japan Web</b></div>
+      <div class="chk">· 사이트/앱에서 본인·여권·항공편 등록 → <b>입국심사 + 세관신고 QR</b> 미리 발급(스크린샷 저장)</div>
+      <div class="chk">· 신치토세공항 QR 지원 → 전용 게이트로 빠르게 통과 가능</div>
+
+      <div class="chk" style="margin-top:8px"><b>② 신치토세 입국 (7/7 18:10 도착)</b></div>
+      <div class="chk">· 하기 → 입국심사(外国人/Foreign · 여권·VJW QR·지문·얼굴) → 수하물 수령 → 세관(VJW QR 또는 종이 신고서) → 도착 로비</div>
+      <div class="chk">· 도착 로비에서 <b>B1 JR역</b>으로 → 쾌속 에어포트(¥1,230·약 37분)</div>
+      <div class="chk">· 팁: VJW QR·여권·호텔 주소 캡처본 폰에 미리 · 입국 줄 길 수 있어 화장실은 나온 뒤</div>
+
+      <div class="chk" style="margin-top:8px"><b>③ 청주공항 귀국 (7/10 19:45 도착)</b></div>
+      <div class="chk">· 입국심사(한국 여권 자동출입국) → 수하물 → 세관</div>
+      <div class="chk"><b>면세 한도(1인)</b> · 휴대품 합계 <b>US$800</b> / 술 2병(합 2L·$400 이하) / 담배 궐련 200개비 / 향수 100mL</div>
+      <div class="chk">· 초과 시 <b>자진신고</b>(여행자 세관신고 모바일 가능) → 관세 30% 감면 · 미신고 적발 시 가산세</div>
+      <div class="chk" style="color:#9aa3af">🍈 생멜론·생과일은 <b>식물검역으로 한국 반입 불가</b> — 멜론 젤리·과자 등 가공품만 OK</div>
+      <div class="chk" style="color:#9aa3af">🚗 청주공항→집 교통은 각자 다르니 <b>개별 확인</b> (리무진·버스·픽업·택시 막차 시간) · 면세 기준 변동 가능 → 관세청 확인</div>
+    </div>
+  </details>
+
+<details>
+    <summary>🏨 숙소 정보 · Wyndham Garden Sapporo Odori <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <div class="chk"><b>주소</b> · 〒060-0062 홋카이도 삿포로시 추오구(北海道札幌市中央区)미나미2조니시7초메7-1(南2条西7丁目7-1)</div>
+      <div class="chk"><b>전화</b> · +81 11-522-7640</div>
+      <div class="chk"><b>체크인 / 체크아웃</b> · 15:00 입실 / <b>10:00 퇴실</b> (퇴실 이른 편 — 7/10 아침 서두르기)</div>
+      <div class="chk"><b>위치</b> · 다누키코지 아케이드 바로 옆(도보 2분, 실내) · 오도리공원·오도리(大通)역 약 300m(도보 5분) · 니시11초메(西11丁目)역 도보 약 10분</div>
+      <div class="chk"><b>와이파이</b> · 전 객실 무료 고속 와이파이</div>
+      <div class="chk"><b>객실</b> · 미니 냉장고 있음 → <b>7/8 컷 멜론 보관 OK</b> · 커피/티 메이커·공기청정기</div>
+      <div class="chk"><b>조식</b> · 예약에 <b>조식 미포함</b> · 아침은 세코마/니조시장/편의점으로 해결 · 단, 매일 6:00~18:00 <b>무료 커피·소프트아이스크림</b>은 제공</div>
+      <div class="chk"><b>짐 보관</b> · 체크인 전·체크아웃 후 프런트 보관 가능(7/10 부타동·쇼핑 때 활용) · 또는 삿포로역 코인락커</div>
+      <div class="chk" style="margin-top:6px"><b>가는 길(7/7)</b> · 삿포로역서 치카호(지하보도) 도보 약 10분 · 또는 남북선(南北線) 삿포로(さっぽろ)→오도리(大通) 1정거장 후 도보</div>
+      <div class="chk" style="color:#9aa3af">📌 예약 확인번호: <b>••••••••••</b> · 결제 ₩***,***</div>
+    </div>
+  </details>
+
+<details>
+    <summary>🚇 교통 · 패스 팁 <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <div class="chk"><b>IC카드</b> · Suica/Kitaca/PASMO 다 됨 (지하철·노면전차·버스·편의점). 제일 편함</div>
+      <div class="chk"><b>지하철</b> · 1구간 약 ¥210~ · 일정이 평일이라 주말권(도니치카/ドニチカ ¥520)은 해당 X · 평일 1일권 ¥830은 하루 4회+ 탈 때만 이득</div>
+      <div class="chk"><b>노면전차(市電)</b> · 모이와야마 갈 때 이용 · 약 ¥200~230 균일 · 1일권 ¥500</div>
+      <div class="chk"><b>치카호(지하보도)</b> · 삿포로역~오도리~스스키노 무료·실내. 비/더위에 최고</div>
+      <div class="chk"><b>JR 쾌속에어포트</b> · 신치토세↔삿포로역 ¥1,230(자유석) · 약 37분 · 배차 ~15분</div>
+      <div class="chk"><b>모이와야마</b> · 노면전차「로프웨이 입구(ロープウェイ入口)」하차 → 무료 셔틀 5분 → 로프웨이+모리스카(정상) 왕복 ¥2,100선</div>
+      <div class="chk" style="color:#9aa3af">※ 요금은 2026년 기준 변동 가능 — 출발 전 한 번 더 확인</div>
+    </div>
+  </details>
+
+<details>
+    <summary>💴 현금 · ATM · 트래블카드 <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <div class="chk"><b>현금 준비</b> · 1인 <b>2~3만 엔</b> (로컬 식당·시장·소형점·세코마는 현금) · 부족하면 현지 ATM 인출이 깔끔</div>
+      <div class="chk"><b>ATM(해외 인출)</b> · <b>세븐일레븐(세븐뱅크) ATM</b>이 해외카드 제일 잘 됨 · 영어 지원·24시간 · 우체국(ゆうちょ) ATM도 OK</div>
+      <div class="chk">· 호텔·다누키코지·삿포로역·공항 곳곳 세븐 있음 · 한 번에 넉넉히 뽑아 인출 수수료 절약</div>
+      <div class="chk" style="margin-top:8px"><b>트래블월렛 / 트래블로그</b></div>
+      <div class="chk">· 앱에서 <b>JPY 미리 충전</b> → 현지 세븐뱅크 ATM 인출(조건부 수수료 면제)·매장 터치결제(Visa/Master)</div>
+      <div class="chk">· 충전은 와이파이·여유 있을 때 미리 · 잔액은 귀국 후 원화로 환급 가능</div>
+      <div class="chk" style="margin-top:8px"><b>카드 결제 팁</b></div>
+      <div class="chk">· 결제 시 <b>"엔화(JPY)로 결제"</b> 선택 — 원화(KRW) 결제(DCC)는 환율 손해</div>
+      <div class="chk">· 대형 매장·체인·편의점은 카드/터치 OK · 잔돈은 IC카드(Suica/Kitaca) 충전으로 소진</div>
+      <div class="chk" style="color:#9aa3af">※ 공항 환전소는 환율 나쁨 → 한국서 소액만 + 현지 ATM/트래블카드 권장 · 매장 면세·세코마 추천템은 아래 🏷️ 면세·결제 꿀팁 참고</div>
+    </div>
+  </details>
+
+<details>
+    <summary>🏷️ 면세 · 결제 꿀팁 <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <div class="chk"><b>면세(Tax-free)</b> · 한 매장 하루 ¥5,000(세전) 이상 사면 소비세 10% 면제 · <b>여권 실물 필수</b> · 다이마루·돈키호테·빅카메라·드럭스토어에서 처리 쉬움</div>
+      <div class="chk">· 과자·화장품 등 소모품은 밀봉 포장 → 일본 내 개봉 금지, 출국 시 제출</div>
+      <div class="chk" style="color:#9aa3af">※ 일본 면세 제도가 환급형으로 바뀔 예정이라 변동 가능 — 현장 안내를 따르세요</div>
+      <div class="chk" style="margin-top:8px"><b>결제</b> · 대형 매장·체인은 카드/터치 OK · <b>로컬 식당·시장·소형점은 현금 위주</b> → 현금 2~3만 엔 · 잔돈은 IC카드 충전으로 소진 · 팁 없음</div>
+      <div class="chk"><b>세이코마트(세코마)</b> · 홋카이도 로컬 편의점 · 추천템: 핫셰프 도시락(카츠동·후라이드), 가성비 와인, 홋카이도 우유/요거트 · 로컬 느낌 + 저렴</div>
+    </div>
+  </details>
+
+<details>
+    <summary>🍽️ 식당 후보 요약 (로컬 &gt; 웨이팅 적음 &gt; 평점) <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <table>
+        <tr><th>날짜</th><th>1순위</th><th>백업/주의</th></tr>
+        <tr><td>7/7 야키토리·잔기</td><td>이타다키 콧코짱(いただきコッコちゃん) 계열</td><td>쿠시도리(串鳥) 남2점(南2店) (흡연 가능 소형 노포는 피함)</td></tr>
+        <tr><td>7/8 점심 스프카레</td><td>SAMURAI/Suage/RAMAI 계열</td><td>GARAKU 본점급 웨이팅은 피함</td></tr>
+        <tr><td>7/8 컷 멜론</td><td>다이이치 스스키노점(ダイイチ すすきの店) B2F</td><td>입고 없으면 생략 → 7/9 소프트로</td></tr>
+        <tr><td>7/8 저녁 스시</td><td>시키하나마루(四季花まる) 시계탑점(時計台店)</td><td>JR타워 네무로 하나마루(根室花まる) 대기 길면 제외</td></tr>
+        <tr><td>7/8 시메파르페</td><td>스스키노 주변 대기 짧은 곳</td><td>유명점 줄 길면 바로 변경</td></tr>
+        <tr><td>7/9 메론빵</td><td>마루야마메론(まるやまめろん)</td><td>마루야마공원(円山公園)역 도보 3분 · 현금 준비</td></tr>
+        <tr><td>7/9 유바리 멜론 소프트</td><td>삿포로 야오큐(札幌やおきゅう) (화·목·토)</td><td>생메론 파르페 공유 / 공항 코진(耕人)</td></tr>
+        <tr><td>7/9 점심</td><td>마루야마 동네 우동/라멘/잔기</td><td>줄 길면 옆집</td></tr>
+        <tr><td>7/9 저녁</td><td>덴푸라/가벼운 이자카야</td><td>야경 전 과식 X</td></tr>
+        <tr><td>7/10 점심 부타동</td><td>토카치부타 잇핀(十勝豚 いっぴん) 삿포로역권</td><td>공항 이동 때문에 역 주변 고정</td></tr>
+      </table>
+    </div>
+  </details>
+
+<details>
+    <summary>🍈 멜론 · 소프트 가이드 (이번 버전 핵심) <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <div class="chk"><b>컷 멜론 (7/8)</b> · 다이이치 스스키노점(ダイイチ すすきの店) (COCONO SUSUKINO B2F) 과일 코너 · 입고 따라 변동 → <b>"있으면 산다"</b>로 운영 · 호텔 냉장고 보관 가능</div>
+      <div class="chk"><b>유바리 멜론 소프트 (7/9)</b> · 삿포로 야오큐(札幌やおきゅう) ¥500 · 영업일 <b>화·목·토</b>라 7/9(목)과 딱 맞음 · 과육까지면 생메론 파르페/반통 생메론 소프트 1개를 둘이 공유(가격 ↑) · 10:00~17:00</div>
+      <div class="chk"><b>메론빵 (7/9)</b> · 마루야마메론(まるやまめろん) 「아츠카와 메론빵(厚皮めろんぱん)」 · 마루야마공원(円山公園)역 도보 3분 · 현금 준비</div>
+      <div class="chk"><b>공항 백업 (7/10)</b> · HOKKAIDO FRUITS 코진(耕人) 과일 소프트 ¥680~ (멜론·딸기 등 도산 과일 디저트)</div>
+      <div class="chk"><b>통멜론</b> · 비싸고 여행 중 먹기 불편 → <b>비추천</b></div>
+      <div class="chk" style="color:#9aa3af">※ 운영 포인트: 7/8엔 컷 멜론, 7/9엔 유바리 멜론 소프트로 분리하면 비용·동선·만족도 균형이 좋음</div>
+    </div>
+  </details>
+
+<details>
+    <summary>🎁 기념품 쇼핑 리스트 <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <div class="chk"><b>대표 과자·디저트</b> · 시로이코이비토(白い恋人) · 르타오(LeTAO) 더블치즈케이크/생초콜릿 · 로이스(ROYCE') 생초콜릿·포테이토칩초콜릿 · 기타카로(北菓楼) 바움쿠헨 · 록카테이(六花亭) 마루세이 버터샌드</div>
+      <div class="chk"><b>스낵</b> · 자가포클(じゃがポックル)·자가타라 포테토 · 시레토코 도넛 · 홋카이도 우유 캔디</div>
+      <div class="chk"><b>🍈 멜론</b> · 멜론 젤리·멜론 쿠키·멜론 캐러멜 등 <b>가공품만</b> (⚠️생멜론은 검역으로 한국 반입 불가)</div>
+      <div class="chk"><b>식품·라멘</b> · 삿포로 미소라멘(봉지/생면) · 스프카레 레토르트 · LeTAO 우유잼 · 세코마(세이코마) 와인·간식</div>
+      <div class="chk"><b>주류</b> · 삿포로 클래식 맥주(홋카이도 한정) · 닛카 위스키 (면세 한도: 술 2병·2L)</div>
+      <div class="chk"><b>잡화·약</b> · 돈키호테 잡화 · 드럭스토어 약·화장품 (¥5,000↑ 면세, 여권 지참)</div>
+      <div class="chk" style="margin-top:6px"><b>어디서</b> · 다이마루 지하·스텔라플레이스(삿포로역, 7/10 동선) · 돈키호테/빅카메라 · <b>신치토세공항</b>(로이스·기타카로·시레토코·멜론 디저트 — 마지막 보충)</div>
+      <div class="chk" style="color:#9aa3af">※ 무거운 건 공항/마지막날에 · 초콜릿·생과자는 여름이라 보냉 주의 · 면세·결제는 위 🏷️ 칸 참고</div>
+    </div>
+  </details>
+
+<details>
+    <summary>🔄 백업 플랜 — 슬롯별 대안 (진짜 plan B) <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <table>
+        <tr><th>슬롯</th><th>1순위</th><th>백업 1 → 2</th></tr>
+        <tr><td>야키토리 7/7</td><td>이타다키 콧코짱(いただきコッコちゃん) 북1조점(北1条店)</td><td>쿠시도리(串鳥) 남2점(南2店) → 토리도리(鳥どり)</td></tr>
+        <tr><td>스프카레 7/8</td><td>Suage 본점</td><td>SAMURAI 스스키노 → RAMAI → KAMUI</td></tr>
+        <tr><td>컷 멜론 7/8</td><td>다이이치 스스키노점(ダイイチ すすきの店) B2F</td><td>입고 없으면 → 7/9 유바리 소프트 → 공항 코진(耕人)</td></tr>
+        <tr><td>스시 7/8</td><td>시키하나마루(四季花まる) 시계탑점(時計台店)</td><td>네무로 하나마루(根室花まる) JR타워(대기 각오) → 카이텐즈시 토리톤(回転寿し トリトン)</td></tr>
+        <tr><td>파르페 7/8</td><td>대기 짧은 곳</td><td>사토(佐藤) 줄 길면 → INITIAL → NORTHCONTINENT</td></tr>
+        <tr><td>유바리 멜론 소프트 7/9</td><td>삿포로 야오큐(札幌やおきゅう) (화·목·토)</td><td>생메론 파르페 공유 → 공항 HOKKAIDO FRUITS 코진(耕人)</td></tr>
+        <tr><td>점심 7/9</td><td>마루야마 동네 식당</td><td>우동/라멘 → 잔기</td></tr>
+        <tr><td>저녁 7/9</td><td>덴푸라/가벼운 이자카야</td><td>줄 길면 → 가벼운 한 끼(과식 X)</td></tr>
+        <tr><td>부타동 7/10</td><td>토카치부타 잇핀(十勝豚 いっぴん)</td><td>부타동 메이진(豚丼名人) → 에키벤(駅弁) 부타동(시간 없을 때)</td></tr>
+        <tr><td>모이와야마</td><td>모이와야마 야경</td><td>JR타워(JRタワー) T38 전망(실내) → 노리아 관람차/파르페</td></tr>
+      </table>
+    </div>
+  </details>
+
+<details>
+    <summary>🌧️ 비/흐림이면 — 통째 실내 루트 <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <div class="chk"><b>이동</b> · 치카호(지하보도)·오로라타운·폴타운으로 시내 전부 실내 연결 (우산 거의 안 씀)</div>
+      <div class="chk"><b>실내 거리</b> · 다이이치 스스키노점(ダイイチ すすきの店)(컷 멜론)·다이마루(大丸)/스텔라플레이스/COCONO/오로라·폴타운 쇼핑</div>
+      <div class="chk"><b>마루야마 대신</b> · 홋카이도대학(北海道大学) 종합박물관(무료·실내) 또는 치카호 카페투어 · 메론빵/파르페로 디저트 대체</div>
+      <div class="chk"><b>야경 대신</b> · JR타워(JRタワー) T38 전망대 — 실내라 비 와도 야경 OK</div>
+      <div class="chk"><b>식당</b> · 줄 긴 집은 같은 음식 지점형/체인으로 즉시 전환(위 표 참고)</div>
+      <div class="chk" style="margin-top:6px"><b>남은 결정</b> · 7/8 스프카레·스시 예약 여부, 7/9 삿포로 야오큐(札幌やおきゅう) 영업 확인·모이와야마 실행 여부 → 출발 전 구글맵 대기/영업시간 확인</div>
+    </div>
+  </details>
+
+<details>
+    <summary>🗣️ 주문·흡연 확인용 일본어 <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <table>
+        <tr><th>상황</th><th>일본어 (보여주기) · 한글 발음</th><th>뜻</th></tr>
+        <tr><td>금연석</td><td class="jp">禁煙席はありますか。<br><span style="color:var(--accent);font-weight:600">킨엔세키와 아리마스카?</span></td><td>금연석 있나요?</td></tr>
+        <tr><td>영어 메뉴</td><td class="jp">英語のメニューはありますか。<br><span style="color:var(--accent);font-weight:600">에이고노 메뉴-와 아리마스카?</span></td><td>영어 메뉴 있나요?</td></tr>
+        <tr><td>추천</td><td class="jp">おすすめは何ですか。<br><span style="color:var(--accent);font-weight:600">오스스메와 난데스카?</span></td><td>추천 메뉴가 뭐예요?</td></tr>
+        <tr><td>2명</td><td class="jp">2名です。<br><span style="color:var(--accent);font-weight:600">니메이데스</span></td><td>2명입니다.</td></tr>
+        <tr><td>계산</td><td class="jp">お会計お願いします。<br><span style="color:var(--accent);font-weight:600">오카이케- 오네가이시마스</span></td><td>계산 부탁드립니다.</td></tr>
+        <tr><td>사진 주문</td><td class="jp">この料理をお願いします。<br><span style="color:var(--accent);font-weight:600">코노 료-리오 오네가이시마스</span></td><td>이 (사진) 요리 주세요.</td></tr>
+        <tr><td>잔기 주문</td><td class="jp">ザンギをください。<br><span style="color:var(--accent);font-weight:600">잔기오 쿠다사이</span></td><td>잔기 주세요.</td></tr>
+        <tr><td>멜론 소프트</td><td class="jp">メロンソフトをください。<br><span style="color:var(--accent);font-weight:600">메론 소후토오 쿠다사이</span></td><td>멜론 소프트 주세요.</td></tr>
+      </table>
+    </div>
+  </details>
+
+<details>
+    <summary>📑 확인한 주요 정보 출처 <span class="arr">▾</span></summary>
+    <div class="refbody">
+      <div class="chk" style="color:#9aa3af">영업시간·메뉴는 계절·임시휴업·입고 상황에 따라 변동될 수 있으니 방문 당일 Google Maps 또는 공식 사이트를 한 번 더 확인하세요.</div>
+      <div class="chk"><b>삿포로 야오큐(札幌やおきゅう)</b> · 영업일 화·목·토 10:00~17:00 · 유바리 멜론 소프트 ¥500, 생메론 소프트/파르페 · <a href="https://sapporo-yaokyu.net/" target="_blank" rel="noopener">sapporo-yaokyu.net</a></div>
+      <div class="chk"><b>다이이치 스스키노점(ダイイチ すすきの店)</b> · COCONO SUSUKINO B2F · 10:00~21:00 · 홋카이도 식재료 중심 슈퍼(과일 코너 컷 멜론)</div>
+      <div class="chk"><b>마루야마메론(まるやまめろん)</b> · 추오구(中央区) 미나미1조니시22(南1条西22) · 마루야마공원(円山公園)역 도보 3분 · 10:00~17:00 · 아츠카와 메론빵(厚皮めろんぱん)</div>
+      <div class="chk"><b>HOKKAIDO FRUITS 코진(耕人)</b> · 신치토세공항 · 과일 소프트 ¥680~ · 도산 과일·멜론 소프트 계열 디저트</div>
+      <div class="chk"><b>JR/치카호 이동</b> · JR 쾌속 에어포트 및 삿포로역~오도리 지하보행공간 정보는 여행 전 재확인 권장</div>
+    </div>
+  </details>
+</section>
+
+<footer>로컬 느낌 우선 버전 · 영업시간·휴무·예약·흡연 정책은 방문 전 재확인 권장<br>지도 길찾기는 현재 위치 기준으로 열립니다 🧭</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-gesture-handling@1.2.2/dist/leaflet-gesture-handling.min.js"></script>
+<script>
+const CAT = {
+  transit:{c:'#64748b', e:'✈️'}, move:{c:'#64748b', e:'🚄'}, walk:{c:'#64748b', e:'🚶'},
+  hotel:{c:'#7c3aed', e:'🏨'}, food:{c:'#e8590c', e:'🍽️'}, dessert:{c:'#e64980', e:'🍧'},
+  sight:{c:'#1971c2', e:'🗺️'}, shop:{c:'#2f9e44', e:'🛍️'}, night:{c:'#3b3f8f', e:'🌃'},
+};
+// lat/lng 없으면 지도엔 안 찍히고 리스트에만 / tr = 그 장소로 가는 이동수단
+const DAYS = [
+{
+  tab:'DAY 1', date:'7/7 (화)', title:'도착일 · 야키토리·잔기·맥주',
+  note:'늦게 도착 → 첫날은 무리 없이 스스키노 한 끼 + 가벼운 야식',
+  items:[
+    {t:'12:10~12:30', n:'인천공항 도착 · 제2터미널(T2)', m:'⚠️진에어 LJ303은 인천 제2여객터미널(T2) 출발 (예전 T1 아님!) · 국제선 카운터 3층 E21~40 · 탑승수속 출발 3시간 전~50분 전 · 도착하면 밥보다 수속·짐 위탁 먼저! (자세한 건 아래 ✈️ 인천공항 출발 가이드)', cat:'transit', tr:'🛫 인천공항 T2 · 공항철도/리무진 모두 T2에서 하차'},
+    {t:'15:25', n:'인천공항 출발', m:'LJ303 진에어 (예약 ••••••) · 기내식 없음(공항에서 점심 먹고 탑승)', cat:'transit', tr:'✈️ 진에어 LJ303 · 인천 T2 출발 · 비행 약 2h45m'},
+    {t:'18:10', n:'신치토세공항 도착', m:'입국심사 · 수하물 수령', cat:'move', lat:42.7752, lng:141.6920, q:'新千歳空港'},
+    {t:'18:50', n:'JR 쾌속 에어포트 탑승', m:'B1 JR역에서 삿포로행 · 표지판 따라가면 쉬움', cat:'move', tr:'🚄 쾌속 에어포트(快速エアポート) · 자유석 ¥1,230 · 약 37분 · 배차 ~15분'},
+    {t:'19:40', n:'삿포로역 도착', m:'바로 호텔로 이동', cat:'move', lat:43.0686, lng:141.3509, q:'札幌駅'},
+    {t:'20:00', n:'호텔 체크인', m:'Wyndham Garden Sapporo Odori', cat:'hotel', lat:43.0572, lng:141.3540, q:'Wyndham Garden Sapporo Odori', tr:'🚶 치카호(지하보도) 도보 약 10분(520m) · 또는 🚇 남북선(南北線) 삿포로(さっぽろ)→오도리(大通) 1정거장 ¥210'},
+    {t:'20:30', n:'저녁 · 야키토리·잔기·맥주', m:'1순위 이타다키 콧코짱(いただきコッコちゃん) 계열(잔기 그랑프리 금상(金賞)으로 유명) · 백업 쿠시도리(串鳥) 남2점(南2店)(전석 금연·좌석 많음·다국어 메뉴) · 흡연 가능 소형 노포는 피하기', cat:'food', lat:43.0635, lng:141.3530, q:'いただきコッコちゃん 北1条店 札幌', tr:'🚶 오도리·북1조(北1条) 방향 · 쿠시도리(串鳥) 택하면 호텔서 도보 약 5분'},
+    {t:'22:00', n:'야식 · 긴다코 / 세이코마트', m:'타코야키+아이스크림 · 피곤하면 생략', cat:'dessert', lat:43.0558, lng:141.3542, q:'築地銀だこ すすきの', tr:'🚶 스스키노 도보 2~3분'},
+  ]
+},
+{
+  tab:'DAY 2', date:'7/8 (수)', title:'TV타워 · 스프카레 · 컷 멜론 · 스시 · 파르페',
+  note:'시내 중심 도보 동선 · 다이이치 컷 멜론 확인 + 디저트 강화',
+  items:[
+    {t:'09:30', n:'호텔 출발', m:'천천히 시작 (과하게 일찍 X)', cat:'hotel', lat:43.0572, lng:141.3540, q:'Wyndham Garden Sapporo Odori'},
+    {t:'09:45', n:'오도리공원 산책', m:'숲·분수 · 아침 산책', cat:'sight', lat:43.0608, lng:141.3530, q:'大通公園', tr:'🚶 호텔서 도보 약 5분'},
+    {t:'10:20', n:'삿포로 TV타워', m:'09:00~22:00 · 오도리 전망', cat:'sight', lat:43.0609, lng:141.3563, q:'さっぽろテレビ塔', tr:'🚶 오도리공원 동쪽 끝 도보 3분'},
+    {t:'11:30', n:'점심 · 스프카레', m:'Suage/SAMURAI/RAMAI 계열 · 웨이팅 짧은 곳 (GARAKU 본점 피함)', cat:'food', lat:43.0549, lng:141.3535, q:'Suage 本店 札幌', tr:'🚶 스스키노 방향 도보 10분 · 또는 🚇 남북선(南北線) 오도리(大通)→스스키노(すすきの) 1정거장 ¥210'},
+    {t:'13:10', n:'KITA KITCHEN / 오로라타운', m:'홋카이도 식품 셀렉트숍 · 과자·레토르트·유제품 구경', cat:'shop', lat:43.0606, lng:141.3545, q:'オーロラタウン 札幌', tr:'🚶 오도리(大通) 지하 오로라타운 도보 5분 (실내)'},
+    {t:'14:20', n:'다이이치(ダイイチ) 스스키노점 · 컷 멜론 확인 🍈', m:'COCONO SUSUKINO B2F 다이이치 슈퍼 · 과일 코너서 컷 멜론·과일·우유·아이스크림 확인 · 입고 따라 없을 수 있어 "있으면 산다"로 운영 · 컷 멜론은 호텔 냉장고 보관 가능', cat:'shop', lat:43.0553, lng:141.3533, q:'ダイイチ すすきの店 COCONO SUSUKINO', tr:'🚶 스스키노 COCONO SUSUKINO B2F · 도보 5분 (실내)'},
+    {t:'15:10', n:'멜론·아이스크림 간식 타임', m:'다이이치나 주변 카페·디저트로 가볍게 · 유바리 멜론 소프트는 7/9에 따로 잡음(통멜론은 비싸고 불편해 비추천)', cat:'dessert', tr:'🚶 스스키노 일대 도보'},
+    {t:'17:30', n:'저녁 · 시키하나마루(四季花まる) 시계탑점', m:'마치노스시야(町のすし家) 시키하나마루(四季花まる) 시계탑점(時計台店) 우선(회전초밥) · JR타워 네무로 하나마루(根室花まる)는 웨이팅 길면 백업으로만', cat:'food', lat:43.0626, lng:141.3535, q:'四季花まる 時計台店', tr:'🚶 시계탑 방향 도보 10분 · 또는 치카호(실내)'},
+    {t:'20:00', n:'시메파르페', m:'스스키노/오도리 근처 대기 짧은 곳 · 점심·간식에 멜론 먹었으면 여긴 가볍게/생략 OK', cat:'dessert', lat:43.0560, lng:141.3545, q:'シメパフェ すすきの', tr:'🚶 스스키노/오도리 도보'},
+    {t:'21:30', n:'호텔 복귀 전 편의점/마트', m:'음료·디저트·다음날 아침 간식 · 세코마(세이코마트) 추천', cat:'walk', tr:'🚶 스스키노/호텔 근처 (실내 치카호)'},
+  ]
+},
+{
+  tab:'DAY 3', date:'7/9 (목)', title:'🍈 마루야마 · 메론빵 · 유바리 멜론 소프트 · 모이와야마 야경',
+  note:'멜론 데이 · 마루야마 로컬 + 유바리 멜론 소프트 + 밤은 모이와야마',
+  items:[
+    {t:'09:30', n:'호텔 출발', m:'지하철로 마루야마코엔(円山公園)역 방면', cat:'hotel', lat:43.0572, lng:141.3540, q:'Wyndham Garden Sapporo Odori', tr:'🚇 동서선(東西線) 오도리(大通)→마루야마공원(円山公園) 약 6분 ¥250'},
+    {t:'10:10', n:'마루야마메론(まるやまめろん) · 메론빵 🍈', m:'본격 메론빵 전문점 · 두꺼운 껍질 「아츠카와 메론빵(厚皮めろんぱん)」 인기 · 마루야마공원(円山公園)역 도보 3분(우라산도/裏参道) · 현금 준비 · 10:00~17:00', cat:'dessert', lat:43.0575, lng:141.3228, q:'まるやまめろん 札幌 円山', tr:'🚶 마루야마공원(円山公園)역서 도보 3분 (미나미1조니시22/南1条西22)'},
+    {t:'11:00', n:'홋카이도신궁 · 마루야마(円山)공원 산책', m:'숲길 가볍게 걷는 코스 · 관광지 아닌 현지 힐링 스폿', cat:'sight', lat:43.0539, lng:141.3076, q:'北海道神宮', tr:'🚶 마루야마(円山)공원 일대 도보'},
+    {t:'12:10', n:'삿포로 야오큐(札幌やおきゅう) · 유바리 멜론 소프트 🍈', m:'유바리 멜론 소프트 ¥500 · 영업일이 화·목·토라 7/9(목)과 딱 맞음 · 과육까지 먹고 싶으면 생메론 파르페/반통 생메론 소프트 1개를 둘이 공유(가격 ↑) · 10:00~17:00, 임시휴무 잦으니 방문 전 전화 확인', cat:'dessert', lat:43.0919, lng:141.3277, q:'札幌やおきゅう', tr:'🚗/🚇 키타구(北区) 키타25조니시16(北25条西16) — 마루야마(円山)서 다소 떨어져 별도 이동 필요 · 영업일·영업 여부 꼭 확인'},
+    {t:'13:00', n:'점심 · 우동 / 라멘 / 잔기', m:'로컬 느낌·웨이팅 적은 곳 우선 · 줄 길면 옆집', cat:'food', tr:'🚶 동네 식당'},
+    {t:'15:00', n:'카페 / 쇼핑 / 호텔 복귀', m:'밤 야경 전 체력 보존 · 가볍게 충전', cat:'hotel', lat:43.0572, lng:141.3540, q:'Wyndham Garden Sapporo Odori', tr:'🚇 마루야마공원(円山公園)→오도리(大通) 후 치카호 도보'},
+    {t:'17:30', n:'저녁 · 덴푸라 / 가벼운 이자카야', m:'야경 전 과식하지 않기 · 가볍게 한 끼', cat:'food', tr:'🚶 스스키노/오도리 일대'},
+    {t:'19:00', n:'모이와야마 야경 🌃', m:'날씨 좋으면 진행 · 흐리면 JR타워 T38(실내)/노리아 관람차/파르페로 대체 · 7월 일몰 ~19:10, 19:30~20:00가 베스트 · 막 상행 21:30', cat:'night', lat:43.0263, lng:141.3232, q:'藻岩山展望台', tr:'🚃 노면전차 니시4초메(西4丁目)/스스키노(すすきの)→「로프웨이 입구(ロープウェイ入口)」약 15분 ¥230 · 무료 셔틀 5분 · 로프웨이+모리스카'},
+  ]
+},
+{
+  tab:'DAY 4', date:'7/10 (금)', title:'체크아웃 · 부타동 · 공항',
+  note:'마지막 날은 식당 점수보다 동선 안정성! 삿포로역권 고정',
+  items:[
+    {t:'09:00', n:'짐 정리 / 근처 편의점', m:'체크아웃 준비·마지막 짐 점검 · 세코마에서 간단 아침 (⚠️퇴실 10:00이라 아침 여유 없음)', cat:'walk', tr:'🚶 호텔 근처 편의점'},
+    {t:'10:00', n:'체크아웃 (퇴실 10:00 엄수)', m:'⚠️퇴실 10:00 · 짐은 프런트 보관 또는 삿포로역 코인락커', cat:'hotel', lat:43.0572, lng:141.3540, q:'Wyndham Garden Sapporo Odori'},
+    {t:'10:20', n:'다누키코지 / 마지막 산책', m:'호텔 옆 아케이드(실내) 가볍게 둘러보기', cat:'walk', lat:43.0571, lng:141.3530, q:'狸小路商店街', tr:'🚶 호텔 바로 옆 (실내)'},
+    {t:'11:00', n:'삿포로역 이동 + 코인락커', m:'치카호/도보 · 코인락커에 짐 맡기고 가볍게', cat:'move', lat:43.0686, lng:141.3509, q:'札幌駅', tr:'🚶 치카호 도보 10~12분 · 또는 🚇 남북선(南北線) 오도리(大通)→삿포로(さっぽろ) 1정거장 ¥210'},
+    {t:'12:00', n:'점심 · 부타동 토카치부타 잇핀(十勝豚いっぴん)', m:'토카치부타 잇핀(十勝豚 いっぴん) 계열 · 스텔라플레이스/삿포로역권 · 귀국일은 맛집보다 동선 우선', cat:'food', lat:43.0676, lng:141.3505, q:'十勝豚 いっぴん 札幌', tr:'🚶 삿포로역 직결 스텔라플레이스 (실내)'},
+    {t:'12:40', n:'다이마루 삿포로 지하 식품관', m:'기념품·디저트·마지막 과일/간식 확인 · 로이스·르타오·기타카로·홋카이도 우유 디저트·멜론 젤리', cat:'shop', lat:43.0678, lng:141.3500, q:'大丸札幌店', tr:'🚶 역 직결 도보 (실내)'},
+    {t:'13:20', n:'JR 신치토세공항 이동', m:'14:20 전후 공항 도착 목표', cat:'move', lat:42.7752, lng:141.6920, q:'新千歳空港', tr:'🚄 쾌속 에어포트(快速エアポート) · ¥1,230 · 약 37분 · 배차 ~15분'},
+    {t:'14:30', n:'공항 체크인·출국·면세/디저트 🍈', m:'마지막 쇼핑 · HOKKAIDO FRUITS 코진(耕人) 과일 소프트 ¥680~(멜론·딸기 등 도산 과일 디저트, 멜론 소프트 백업) · 로이스·기타카로', cat:'shop', lat:42.7752, lng:141.6920, q:'HOKKAIDO FRUITS 耕人 新千歳空港'},
+    {t:'16:50', n:'신치토세공항 출발', m:'RF355 에어로케이 (예약 ••••••) → 청주 19:45', cat:'transit', lat:42.7752, lng:141.6920, q:'新千歳空港', tr:'✈️ 에어로케이 RF355 · 신치토세 국제선 터미널 (국내선 터미널과 도보 연결)'},
+  ]
+},
+];
+
+let map=null, layer=null, markers=[];
+try{
+  map = L.map('map',{
+    zoomControl:true,
+    gestureHandling:true,
+    gestureHandlingOptions:{ text:{
+      touch:'두 손가락으로 지도를 이동하세요',
+      scroll:'Ctrl + 스크롤로 확대',
+      scrollMac:'⌘ + 스크롤로 확대'
+    }, duration:1500 }
+  }).setView([43.06,141.35],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:19, attribution:'© OpenStreetMap'
+  }).addTo(map);
+  layer = L.layerGroup().addTo(map);
+}catch(e){
+  const md=document.getElementById('map');
+  if(md){
+    md.style.height='auto';
+    md.style.minHeight='0';
+    md.style.padding='14px 16px';
+    md.style.color='#6b7280';
+    md.style.fontSize='12.5px';
+    md.style.lineHeight='1.5';
+    md.textContent='⚠️ 오프라인 상태예요 — 지도는 인터넷 연결 시 표시됩니다. 아래 일정과 길찾기 버튼은 그대로 쓸 수 있어요.';
+  }
+}
+
+function pin(num,color){
+  return L.divIcon({className:'',
+    html:`<div class="pin-in" style="background:${color}"><span>${num}</span></div>`,
+    iconSize:[26,26], iconAnchor:[13,24], popupAnchor:[0,-22]});
+}
+function gmap(q){return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(q);}
+
+function render(di){
+  const day = DAYS[di];
+  document.querySelectorAll('#days button').forEach((b,i)=>b.classList.toggle('on',i===di));
+  document.getElementById('dayhead').innerHTML =
+    `<h2>${day.tab} · ${day.date}</h2><p>${day.title} — ${day.note}</p>`;
+
+  if(layer) layer.clearLayers();
+  markers=[];
+  const pts=[], list=document.getElementById('list'); list.innerHTML='';
+  let n=0;
+
+  day.items.forEach((it,idx)=>{
+    const cat=CAT[it.cat]||CAT.move;
+    const mapped = (it.lat!=null);
+    let badge;
+    if(mapped){
+      n++; it._n=n;
+      badge=`<div class="num" style="background:${cat.c}">${n}</div>`;
+      pts.push([it.lat,it.lng]);
+      if(map){
+        const mk=L.marker([it.lat,it.lng],{icon:pin(n,cat.c)})
+          .bindPopup(`<b>${cat.e} ${it.n}</b><br>${it.t} · ${it.m}<br><a href="${gmap(it.q||it.n)}" target="_blank" rel="noopener">🧭 구글맵 길찾기</a>`);
+        mk.addTo(layer); markers[idx]=mk;
+      }
+    } else {
+      badge=`<div class="emo">${cat.e}</div>`;
+    }
+    const trLine = it.tr ? `<div class="tr">${it.tr}</div>` : '';
+    const btns = mapped
+      ? `<div class="btns">${map?`<button onclick="focusPin(${idx})">📍 지도</button>`:''}<a class="nav" href="${gmap(it.q||it.n)}" target="_blank" rel="noopener">🧭 길찾기</a></div>`
+      : '';
+    list.insertAdjacentHTML('beforeend',
+      `<div class="row ${mapped?'':'flat'}" style="border-left-color:${cat.c}">
+         ${badge}
+         <div class="body">
+           <div class="time">${it.t}</div>
+           <div class="name">${it.n}</div>
+           ${trLine}
+           <div class="memo">${it.m}</div>
+           ${btns}
+         </div>
+       </div>`);
+  });
+
+  if(pts.length && map){
+    L.polyline(pts,{color:'#2c3a4f',weight:3,opacity:.55,dashArray:'1,7',lineCap:'round'}).addTo(layer);
+    map.fitBounds(pts,{padding:[36,36],maxZoom:15});
+  }
+}
+function focusPin(idx){
+  const mk=markers[idx]; if(!mk||!map) return;
+  const ll=mk.getLatLng(); map.flyTo(ll,16,{duration:.6});
+  setTimeout(()=>mk.openPopup(),300);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+const dn=document.getElementById('days');
+DAYS.forEach((d,i)=>{
+  const b=document.createElement('button');
+  b.innerHTML=`${d.tab}<small>${d.date}</small>`;
+  b.onclick=()=>render(i);
+  dn.appendChild(b);
+});
+render(0);
+if(map) setTimeout(()=>map.invalidateSize(),200);
+</script>
+</body>
+</html>
